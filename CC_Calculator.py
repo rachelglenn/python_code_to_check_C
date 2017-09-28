@@ -77,7 +77,7 @@ class CC_Calculator(object):
         tf = 50.0 + t0 #the stop time, the actual stop time is governed by the timelength of the job
                              #Unless it completes enough steps to get to tf first. 
         dt =  param['dt'][0] #time step
-        t0 = t0 + dt
+        t0 = t0 + 2*dt
         precs = int(param['precs'][0])
         i = int(param['i'][0])
         a = int(param['a'][0])

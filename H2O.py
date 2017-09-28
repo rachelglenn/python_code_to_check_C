@@ -13,6 +13,22 @@ H 1 1.1 2 104
 symmetry c1
 """)
 
+
+#mol = psi4.geometry("""
+#    N           -1.527107413251     0.745960643462     0.766603000356
+#    C           -0.075844098953     0.811790225041     0.711418672248
+#    C            0.503195220163    -0.247849447550    -0.215671574613
+#    O           -0.351261319421    -0.748978309671    -1.089590304723
+#    O            1.639498336738    -0.571249748886    -0.174705953194
+#    H           -1.207655674855    -0.365913941094    -0.918035522052
+#symmetry c1
+#""")
+
+
+
+
+
+
 opt_dict = {
   "basis": "sto-3g",
   "reference": "RHF",
@@ -26,6 +42,16 @@ opt_dict = {
 psi4.set_options(opt_dict)
 psi4.properties('ccsd', properties=['dipole','analyze'])
 #psi4.properties('cc2', properties=['dipole','analyze'])
+#print("The dipole moment is[a.u.]: ", psi4.get_variable('CC DIPOLE Z')*0.393456)
+dip_z = psi4.get_variable('CC DIPOLE Z')
+
+fac = 0.393456#The conversion factor from dybe to a.u.
+z_nuclear_dipole = 1.1273
+z_HF_dipole = -0.52376994809
+z_HF_dipole = -0.0795
+dip_z = dip_z*fac -z_nuclear_dipole-z_HF_dipole
+
+print("The ccdipole moment is: ", round(dip_z,4) )
 
 
 #Start parameters

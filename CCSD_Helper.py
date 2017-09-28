@@ -1038,29 +1038,30 @@ class CCSD_Helper(object):
         z_nuclear_dipole = 1.1273 #H2O
         dip_x = dip_x*fac -x_nuclear_dipole
         dip_y = dip_y*fac -y_nuclear_dipole
-        dip_z = dip_z*fac -z_nuclear_dipole        
+        dip_z = dip_z*fac -z_nuclear_dipole
         
+        #print("\n This is the psi4 electric in a. u. units dipole \n", psi4.core.get_variable('CC DIPOLE Z'))
 
         #Compare calculated CC dipole to psi4
-        print("This is the calculated electric in a. u. dipole \n", "x=", dip_xyz_corr[0], "y=", dip_xyz_corr[1], "z=", dip_xyz_corr[2])
-        print("\n This is the psi4 electric in a. u. units dipole \n", "x=", dip_x, "y=", dip_y, "z=", dip_z)
+        #print("This is the calculated electric in a. u. dipole \n", "x=", dip_xyz_corr[0], "y=", dip_xyz_corr[1], "z=", dip_xyz_corr[2])
+        #print("\n This is the psi4 electric in a. u. units dipole \n", "x=", dip_x, "y=", dip_y, "z=", dip_z)
         
         #Check that the p_trace_corr = 0, and p_trace_Hf =0
         p_trace_corr = np.sum(contract('ii->i', corr_p))
         p_trace_HF = np.sum(contract('ii->i', HF_p)) 
         print("The trace of pho corr is", p_trace_corr,"\n")
         #print "The trace of pho is", p_trace_tot,"\n"
-        print("The trace of pho HF is", p_trace_HF,"\n")       
+        #print("The trace of pho HF is", p_trace_HF,"\n")
         
         #Check the idempotency of HF
         p_sqd = contract('ij,kj->ik', HF_p, HF_p)
-        print("The difference between HF density p and p^2 should be zero \n", HF_p-p_sqd, "\n")
+        #print("The difference between HF density p and p^2 should be zero \n", HF_p-p_sqd, "\n")
 
         #Check the idempotency of the total density ( It is not idempotent )
         ptot = HF_p + corr_p
         p_sqd = contract('ij,kj->ik', ptot, ptot)
         np.set_printoptions(precision=3)
-        print("The difference between the total p and p^2 should be zero \n", ptot-p_sqd, "\n")
+        #print("The difference between the total p and p^2 should be zero \n", ptot-p_sqd, "\n")
         
     #Build the expectation value of the dipole moment
     def dipole_moment(self, t1, t2, lam1, lam2, F):
@@ -1082,13 +1083,17 @@ class CCSD_Helper(object):
         
         #Calculate the corr dipole moment
         dip_xyz_corr = []
+        HF_dip = []
         for i in range(3):
-            #temp = contract('ij,ij->', dipolexyz[i], HF_p + corr_p)
-            temp = contract('ij,ij->', dipolexyz[i], corr_p)
-            dip_xyz_corr.append(temp)   
-        
+            HF_dip.append(contract('ij,ji->', dipolexyz[i], HF_p))
+            temp = contract('ij,ji->', dipolexyz[i], corr_p)
+            #temp = contract('ij,ji->', dipolexyz[i], corr_p)
+            #trace = contract('ii', temp)
+            
+            dip_xyz_corr.append(temp)
+        #print("\n This is the HF dipole in a. u. units dipole \n", "x=", HF_dip[0], "y=", HF_dip[1], "z=", HF_dip[2])
         #Check important characteristics before moving on
-        #self.pho_checks(HF_p, corr_p, dip_xyz_corr)     
+        #self.pho_checks(HF_p, corr_p, dip_xyz_corr)
         return dip_xyz_corr             
         
 ########################################################
@@ -1129,10 +1134,12 @@ class CCSD_Helper(object):
             data.to_csv('H2O.csv')
             timing.to_csv('timing.csv')
         else:
-            with open('H2O.csv', 'a') as f:
-                data.to_csv(f, header=False)
-            with open('timing.csv', 'a') as f:
-                timing.to_csv(f, header=False)
+           data.to_csv('H2O.csv', mode='a', header=False)
+           timing.to_csv('timing.csv', mode='a', header=False)
+           #with open('H2O.csv', 'a') as f:
+           #     data.to_csv(f, header=False)
+           # with open('timing.csv', 'a') as f:
+           #     timing.to_csv(f, header=False)
         self.write_2data(F.real, 'F_real.dat', precs)
         self.write_2data(F.imag, 'F_imag.dat', precs)
         self.write_2data(t1.real, 't1_real.dat', precs)
@@ -1198,6 +1205,7 @@ class CCSD_Helper(object):
             mu = self.Defd_dipole()
             pi = np.cos(-1)
             return -A*mu[2]*cmath.exp(1j*w0*2*np.pi*t)
+
         i=0
         start = time.time()
         mua = self.dipole_moment(t1, t2, lam1, lam2, F)
@@ -1231,7 +1239,8 @@ class CCSD_Helper(object):
             t2 = (t2min + dt2)
             lam1 = (L1min + dL1)
             lam2 = (L2min + dL2)
-
+            
+           
             stop = time.time()-start
             
             #self.check_T1_T2_L1_L2(t1, t2, lam1, lam2, F)
