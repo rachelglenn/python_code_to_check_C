@@ -124,8 +124,38 @@ class CC2_Helper(CCSD_Helper):
 
         return lam1_rhs
 
-
     def L2eq_rhs_CC2(self, t1, t2, lam1, lam2, F):
+
+        v = self.vir
+        o = self.occ
+        TEI = self.TEI
+
+        term1 = TEI[o, o, v, v].copy()
+        Feb = F[v, v].copy()
+        term2a = contract('eb,ijae->ijab', Feb, lam2)
+        term2 = term2a - term2a.swapaxes(2,3)
+        Fjm = F[o, o].copy()
+        term3a = -contract('jm,imab->ijab', Fjm, lam2)
+        term3 = term3a - term3a.swapaxes(0,1)
+
+
+        Wijmb = self.LWmina(t1)
+        term7a = -contract('ijmb,ma->ijab', Wijmb, lam1)
+        term7 = term7a - term7a.swapaxes(2,3)
+
+        Wejab = self.LWfiea(t1)
+        term6a = contract('ejab,ie->ijab', Wejab, lam1)
+        term6 = term6a - term6a.swapaxes(0,1)
+
+        Fjb = self.Fme(t1, t2, F)
+        term89a = contract('jb,ia->ijab', Fjb, lam1)
+        term89 = term89a
+        term89 = term89 - term89a.swapaxes(2,3)
+        term89 = term89 - term89a.swapaxes(0,1)
+        term89 = term89 + term89a.swapaxes(0,1).swapaxes(2,3)
+        total = term1 + term2 + term3 +term7 + term6 + term89
+        return total
+    def L2eq_rhs_CC2_T(self, t1, t2, lam1, lam2, F):
     
         v = self.vir
         o = self.occ
@@ -178,20 +208,20 @@ class CC2_Helper(CCSD_Helper):
     #Routine for DIIS solver, builds all arrays(maxsize) before B is computed    
     def DIIS_solver_CC2(self, t1, t2, F, maxsize, maxiter, E_min):
             #Store the maxsize number of t1 and t2
-            T1rhs = self.T1eq_rhs(t1, t2, F)
-            T2rhs = self.T2eq_rhs_CC2(t1, t2, F)
-            t1 = self.corrected_T1(t1, T1rhs, F)
-            t2 = self.corrected_T2(t2, T2rhs, F)
+            T1rhs = self.T1eq_rhs(t1, t2, np.longdouble(F))
+            T2rhs = self.T2eq_rhs_CC2(t1, t2, np.longdouble(F))
+            t1 = np.longdouble(self.corrected_T1(t1, T1rhs, F))
+            t2 = np.longdouble(self.corrected_T2(t2, T2rhs, F))
             t1stored = [t1.copy()]
             t2stored = [t2.copy()]
             errort1 = []
             errort2 = []
             
             for n in range(1, maxsize+1):  
-                T1rhs = self.T1eq_rhs(t1, t2, F)
-                T2rhs = self.T2eq_rhs_CC2(t1, t2, F)
-                t1 = self.corrected_T1(t1, T1rhs, F)
-                t2 = self.corrected_T2(t2, T2rhs, F)
+                T1rhs = self.T1eq_rhs(t1, t2, np.longdouble(F))
+                T2rhs = self.T2eq_rhs_CC2(t1, t2, np.longdouble(F))
+                t1 = np.longdouble(self.corrected_T1(t1, T1rhs, F))
+                t2 = np.longdouble(self.corrected_T2(t2, T2rhs, F))
                 t1stored.append(t1.copy())
                 t2stored.append(t2.copy())
                 
@@ -230,10 +260,10 @@ class CC2_Helper(CCSD_Helper):
                 if (abs(diff_E) < E_min):
                     break
                 #update t1 and t2 list
-                T1rhs = self.T1eq_rhs(t1, t2, F)
-                T2rhs = self.T2eq_rhs_CC2(t1, t2, F)
-                t1 = self.corrected_T1(t1, T1rhs, F)
-                t2 = self.corrected_T2(t2, T2rhs, F)
+                T1rhs = self.T1eq_rhs(t1, t2, np.longdouble(F))
+                T2rhs = self.T2eq_rhs_CC2(t1, t2, np.longdouble(F))
+                t1 = np.longdouble(self.corrected_T1(t1, T1rhs, F))
+                t2 = np.longdouble(self.corrected_T2(t2, T2rhs, F))
                 t1stored.append(t1.copy())
                 t2stored.append(t2.copy())
                 
@@ -321,27 +351,29 @@ class CC2_Helper(CCSD_Helper):
         total = (term1 + (term2 + term3 + term4) + term5 + term6)
         return total
 
-    def DIIS_solver_Lam_CC2(self, t1, t2, lam1, lam2, F, maxsize, maxiter, E_min): 
-            #Store the maxsize number of t1 and t2
-            lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, F)
+    def DIIS_solver_Lam_CC2(self, t1, t2, lam1, lam2, F, maxsize, maxiter, E_min):
+            #lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, F)
             #lam1rhs = self.L1_eq_rhs_cc2(t1, t2, lam1, lam2, F)
-            lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2, F)
-            lam1 = self.corrected_lam1(lam1, lam1rhs, F)
-            lam2 = self.corrected_lam2(lam2, lam2rhs, F)
+            #lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2, F)
+            #lam2rhs = self.L2eq_rhs_CC2_T(t1, t2, lam1, lam2, F)
+            #Store the maxsize number of t1 and t2
+            lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, np.longdouble(F))
+            lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2 ,np.longdouble(F))
+            lam1 = np.longdouble(self.corrected_lam1(lam1, lam1rhs, F))
+            lam2 = np.longdouble(self.corrected_lam2(lam2, lam2rhs, F))
             lam1stored = [lam1.copy()]
             lam2stored = [lam2.copy()]
             errort1 = []
             errort2 = []
-            
-            for n in range(1, maxsize+1):  
-                lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, F)
-                #lam1rhs = self.L1_eq_rhs_cc2(t1, t2, lam1, lam2, F)
-                lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2, F)
-                lam1 = self.corrected_lam1(lam1, lam1rhs, F)
-                lam2 = self.corrected_lam2(lam2, lam2rhs, F)
+
+            for n in range(1, maxsize+1):
+                lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, np.longdouble(F))
+                lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2 ,np.longdouble(F))
+                lam1 = np.longdouble(self.corrected_lam1(lam1, lam1rhs, F))
+                lam2 = np.longdouble(self.corrected_lam2(lam2, lam2rhs, F))
                 lam1stored.append(lam1.copy())
                 lam2stored.append(lam2.copy())
-                
+
                 errort1.append(lam1stored[n]-lam1stored[n-1])
                 errort2.append(lam2stored[n]- lam2stored[n-1])
 
@@ -356,14 +388,14 @@ class CC2_Helper(CCSD_Helper):
                         a = contract('ia,ia->',errort1[m], errort1[n])
                         b = contract('ijab,ijab->', errort2[m], errort2[n])
                         B[n, m] = a + b
-    
+
                 # Build residual vector
                 A = np.zeros(maxsize + 1)
                 A[-1] = -1
 
                 c = np.linalg.solve(B, A)
-                
-                # Update t1 and t2 
+
+                # Update t1 and t2
                 lam1 = 0.0*lam1
                 lam2 = 0.0*lam2
                 for n in range(maxsize):
@@ -379,18 +411,18 @@ class CC2_Helper(CCSD_Helper):
                 if (abs(diff_E) < E_min):
                     break
                 #update t1 and t2 list
+                lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, np.longdouble(F))
+                lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2 ,np.longdouble(F))
+                lam1 = np.longdouble(self.corrected_lam1(lam1, lam1rhs, F))
+                lam2 = np.longdouble(self.corrected_lam2(lam2, lam2rhs, F))
                 lam1stored.append(lam1.copy())
-                lam1rhs = self.L1eq_rhs_CC2(t1, t2, lam1, lam2, F)
-                #lam1rhs = self.L1_eq_rhs_cc2(t1, t2, lam1, lam2, F)
-                lam2rhs = self.L2eq_rhs_CC2(t1, t2, lam1, lam2, F)
-                lam1 = self.corrected_lam1(lam1, lam1rhs, F)
-                lam2 = self.corrected_lam2(lam2, lam2rhs, F)
                 lam2stored.append(lam2.copy())
-                
+
                 errort1.append(lam1 - oldlam1)
                 errort2.append(lam2 - oldlam2)
-                
+
                 print("inter =", z,  "\t", "Pseudo_E =", CCSD_E,"diff=", diff_E)
+                #print("inter =", z,  "\t", "CCSD_E =", CCSD_E,"diff=", diff_E, "lam1E=", E1, "lam2E=", E2
                 del lam1stored[0]
                 del lam2stored[0]
                 del errort1[0]
